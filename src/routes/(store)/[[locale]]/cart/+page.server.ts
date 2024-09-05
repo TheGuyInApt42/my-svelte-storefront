@@ -37,37 +37,128 @@ type Storefront = typeof shopify
 
 const cartRetrieve = async (cartId: string, storefront: Storefront, locale?: Locale) => {
   // return a cart
-  const { data } = await storefront.query<{
-    cart: Cart
-    errors: CartUserError[]
-  }>({
-    query: CART_QUERY,
-    variables: {
-      cartId,
-      country: locale?.country || undefined,
-      language: locale?.language || undefined,
-    },
-    fetchPolicy: 'no-cache',
-  })
-  invariant(data?.cart, 'No cart returned from cart query')
-  return data
+  console.log("cartId", cartId);
+  console.log(locale);
+
+
+
+  try {
+    const result = await storefront.query<{
+      cart: Cart
+      errors: CartUserError[]
+    }>({
+      query: CART_QUERY,
+      variables: {
+        cartId,
+        country: locale?.country || undefined,
+        language: locale?.language || undefined,
+      },
+      fetchPolicy: 'no-cache',
+    });
+    
+    console.log("Full query response:", result);
+    
+    if (!result || !result.data) {
+      console.error("Query returned null or undefined result");
+      return null;
+    }
+    
+    const { data } = result;
+    
+    if (data.errors && data.errors.length > 0) {
+      console.error("Cart query errors:", data.errors);
+      throw new Error(`Cart query failed: ${data.errors[0].message}`);
+    }
+    
+    if (!data.cart) {
+      console.warn("No cart data returned from query");
+      return null; // or handle this case as appropriate for your application
+    }
+    
+    return data.cart;
+  } catch (error) {
+    console.error("Error retrieving cart:", error);
+    throw error; // or handle the error as appropriate for your application
+  }
+
+
+
+
+
+
+  
 }
 
 const cartCreate = async (input: CartInput, storefront: Storefront, locale?: Locale) => {
-  // create a cart
-  const { data } = await storefront.mutate<{
-    cartCreate: CartCreatePayload
-  }>({
-    mutation: CREATE_CART_MUTATION,
-    variables: {
-      input,
-      country: locale?.country || undefined,
-      language: locale?.language || undefined,
-    },
-  })
-  invariant(data?.cartCreate, 'No cart returned from cartCreate mutation')
-  return data.cartCreate
-}
+  try {
+    const { data } = await storefront.mutate<{
+      cartCreate: CartCreatePayload
+    }>({
+      mutation: CREATE_CART_MUTATION,
+      variables: {
+        input,
+        country: locale?.country || undefined,
+        language: locale?.language || undefined,
+      },
+    });
+
+    console.log("Cart creation response:", data);
+
+    if (!data?.cartCreate) {
+      console.error("No cart returned from cartCreate mutation");
+      throw new Error("Failed to create cart");
+    }
+
+    return data.cartCreate;
+  } catch (error) {
+    console.error("Error creating cart:", error);
+    throw error;
+  }
+};
+
+
+const getOrCreateCart = async (
+  cartId: string | undefined | null,
+  storefront: Storefront,
+  locale?: Locale
+): Promise<{
+  cart: Maybe<Cart> | null;
+  errors: CartUserError[] | UserError[] | null;
+}> => {
+  try {
+    // If we have a cartId, try to retrieve the existing cart
+    if (cartId) {
+      const existingCart = await cartRetrieve(cartId, storefront, locale);
+      if (existingCart) {
+        console.log("Retrieved existing cart:", existingCart);
+        return { cart: existingCart, errors: null };
+      }
+    }
+
+    // If we don't have a cartId or couldn't retrieve the cart, create a new one
+    console.log("Creating new cart");
+    const newCartInput: CartInput = {
+      lines: [], // You can add initial cart items here if needed
+      // Add any other necessary cart input fields
+    };
+
+    const newCartPayload = await cartCreate(newCartInput, storefront, locale);
+    console.log("Created new cart:", newCartPayload.cart);
+
+    return { 
+      cart: newCartPayload.cart || null,
+      errors: newCartPayload.userErrors || null // Assuming cartCreate returns userErrors
+    };
+  } catch (error) {
+    console.error("Error in getOrCreateCart:", error);
+    return { 
+      cart: null,
+      errors: [{ message: error instanceof Error ? error.message : 'An unknown error occurred' }]
+    };
+  }
+};
+
+
 
 const cartAdd = async (cartId: string, lines: CartLineInput[], storefront: Storefront) => {
   const { data } = await storefront.mutate<{
@@ -130,28 +221,23 @@ const cartUpdateBuyerIdentity = async (cartId: string, buyerIdentity: CartBuyerI
 }
 
 export const load: PageServerLoad = async ({ request, locals }) => {
-  // return a cart
-  const { storefront, locale } = locals
+  const { storefront, locale } = locals;
 
-  let result: {
-    cart?: Maybe<Cart>
-    errors?: CartUserError[] | UserError[]
-  } = {}
+  const cartId = getCartId(request);
+  const result = await getOrCreateCart(cartId, storefront, locale);
 
-  const cartId = getCartId(request)
-  !cartId
-    ? result = { cart: undefined, errors: undefined }
-    : result = await cartRetrieve(cartId, storefront, locale)
+  // Use nullish coalescing to provide default values
+  const cart = result.cart ?? null;
+  const errors = result.errors ?? null;
 
-  const { cart, errors } = result
   return {
-    cart,
-    errors,
+    cart: cart, // This will be Cart | null
+    errors: errors, // This will be CartUserError[] | UserError[] | null
     seo: {
       title: cart?.totalQuantity ? `Cart (${cart.totalQuantity})` : 'Cart',
     },
-  }
-}
+  };
+};
 
 enum CartAction {
   ADD_TO_CART = 'ADD_TO_CART',
