@@ -5,6 +5,7 @@ const apiVersion = env.PUBLIC_STOREFRONT_API_VERSION || '2023-07'
 const storeDomain = env.PUBLIC_STORE_DOMAIN
 const token = env.PUBLIC_STOREFRONT_API_TOKEN
 
+
 const endpointUrl = `https://${storeDomain}/api/${apiVersion}/graphql.json`
 
 const shopify = new ApolloClient({

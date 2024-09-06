@@ -24,9 +24,10 @@ const getLocale = (event: RequestEvent<Partial<Record<string, string>>>): Locale
 
   return selectedLocale
 }
-
+console.log('env: ', process.env.SESSION_SECRET);
 export const handle: Handle = handleSession({
   secret: env.SESSION_SECRET,
+  
 }, async ({ event, resolve }) => {
   const locale = getLocale(event)
 

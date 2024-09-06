@@ -37,8 +37,7 @@ type Storefront = typeof shopify
 
 const cartRetrieve = async (cartId: string, storefront: Storefront, locale?: Locale) => {
   // return a cart
-  console.log("cartId", cartId);
-  console.log(locale);
+
 
 
 
@@ -56,7 +55,7 @@ const cartRetrieve = async (cartId: string, storefront: Storefront, locale?: Loc
       fetchPolicy: 'no-cache',
     });
     
-    console.log("Full query response:", result);
+
     
     if (!result || !result.data) {
       console.error("Query returned null or undefined result");
@@ -102,7 +101,7 @@ const cartCreate = async (input: CartInput, storefront: Storefront, locale?: Loc
       },
     });
 
-    console.log("Cart creation response:", data);
+  
 
     if (!data?.cartCreate) {
       console.error("No cart returned from cartCreate mutation");
