@@ -4,6 +4,7 @@ import { redirect } from '@sveltejs/kit'
 import type { Locale, UrlRedirectConnection } from '$lib/types'
 import { handleSession } from 'svelte-kit-cookie-session'
 import { env } from '$env/dynamic/private'
+import { SESSION_SECRET } from '$env/static/private'
 import { REDIRECT_QUERY } from '$lib/server/data'
 import { isLocalPath } from '$lib/utils'
 
@@ -24,6 +25,7 @@ const getLocale = (event: RequestEvent<Partial<Record<string, string>>>): Locale
 
   return selectedLocale
 }
+console.log(SESSION_SECRET);
 console.log('env: ', process.env.SESSION_SECRET);
 export const handle: Handle = handleSession({
   secret: env.SESSION_SECRET,
