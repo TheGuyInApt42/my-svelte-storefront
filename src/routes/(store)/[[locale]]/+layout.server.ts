@@ -21,7 +21,7 @@ export const load: LayoutServerLoad = async ({ locals, request }) => {
     return data
   }
 
-  const getCart = async (cartId: string) => {
+  const getCart = async (cartId: string | undefined) => {
     const { data } = await storefront.query<{
       cart: import('$lib/types').Cart
     }>({

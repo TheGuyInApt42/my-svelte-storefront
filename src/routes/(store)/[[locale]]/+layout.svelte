@@ -5,6 +5,7 @@
 	import Link from '$root/lib/components/Link.svelte'
 	import SearchBar from '$root/lib/components/search-bar/SearchBar.svelte'
 	import Icons from '$root/lib/components/Icons.svelte'
+	import NewsletterSignup from '$root/lib/components/NewsletterSignup.svelte'
 	import '$root/app.css'
 
 	export let data: LayoutServerData
@@ -53,6 +54,7 @@
 </header>
 
 <main class="flex-1">
+	<NewsletterSignup />
 	<slot />
 </main>
 
